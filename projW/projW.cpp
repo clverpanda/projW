@@ -5,6 +5,7 @@
 #include "projW.h"
 
 #define MAX_LOADSTRING 100
+#define ID_TIMER1 101
 
 // 全局变量: 
 HINSTANCE hInst;                                // 当前实例
@@ -123,8 +124,21 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	static bool fin,stop;
+	static int lButton;
+	static int validClk, invalidClk;
+
     switch (message)
     {
+	case WM_CREATE:
+	    { 
+			fin = false;
+			stop = false;
+			lButton = 0;
+			validClk = invalidClk = 0;
+			SetTimer(hWnd, ID_TIMER1, 5000, NULL);
+	    }
+		break;
     case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);
@@ -137,14 +151,68 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case IDM_EXIT:
                 DestroyWindow(hWnd);
                 break;
+			case ID_RESET:
+			    {
+					validClk = invalidClk = 0;
+					stop = false;
+					SetTimer(hWnd, ID_TIMER1, 5000, NULL);
+					InvalidateRect(hWnd, NULL, TRUE);
+			    }
+				break;
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
             }
         }
         break;
-	case WM_LBUTTONDOWN:
+	case WM_TIMER:
 	    {
-
+			switch (wParam)
+			{
+			case ID_TIMER1:
+			    {
+				    stop = true;
+					KillTimer(hWnd, ID_TIMER1);
+			    }
+				break;
+			}
+	    }
+	    break;
+	case WM_LBUTTONUP:
+	    {
+			if (stop == false)
+			{
+				if (fin == false)
+					fin = true;
+				else
+				{
+					if (lButton == 1)
+						invalidClk++;
+					else if (lButton == 2)
+						validClk++;
+					fin = false;
+				}
+				lButton = 1;
+				InvalidateRect(hWnd, NULL, TRUE);
+			}
+	    }               
+	    break;
+	case WM_RBUTTONUP:
+	    {
+			if (stop == false)
+			{
+				if (fin == false)
+					fin = true;
+				else
+				{
+					if (lButton == 1)
+						validClk++;
+					else if (lButton == 2)
+						invalidClk++;
+					fin = false;
+				}
+				lButton = 2;
+				InvalidateRect(hWnd, NULL, TRUE);
+			}
 	    }
 	    break;
     case WM_PAINT:
@@ -152,6 +220,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
             // TODO: 在此处添加使用 hdc 的任何绘图代码...
+			MoveToEx(hdc, 0, 10, NULL);
+			LineTo(hdc, 10 * validClk, 10);
+			MoveToEx(hdc, 0, 50, NULL);
+			LineTo(hdc, 10 * invalidClk, 50);
+
             EndPaint(hWnd, &ps);
         }
         break;
