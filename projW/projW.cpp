@@ -19,6 +19,12 @@
 #define ID_START_BTN  1
 #define ID_END_BTN    2
 #define ID_BEATIMER 101
+#define KEY_W 87
+#define KEY_A 65
+#define KEY_S 83
+#define KEY_D 68
+
+
 
 // 全局变量: 
 HINSTANCE hInst;                                // 当前实例
@@ -27,6 +33,8 @@ WCHAR szWindowClass[MAX_LOADSTRING];            // 主窗口类名
 
 BOOL Compare();//判定是否碰撞
 BOOL TransBlock(int);//转换函数(包含变形，加速，左右移动。
+BOOL EchoBeat(int);
+
 void HandleTable();//得分时处理游戏区域
 				   //定义24种方块
 POINT ptBlock[28][4] = { -1, 0, 0, 0, 1, 0, 0, 1, -1, 0, 0, 0, 0, -1, 0, 1, -1, 0, 1, 0, 0, 0, 0, -1, 0, 0, 1, 0, 0, 1, 0, -1,//山形
@@ -40,7 +48,7 @@ POINT ptBlock[28][4] = { -1, 0, 0, 0, 1, 0, 0, 1, -1, 0, 0, 0, 0, -1, 0, 1, -1, 
  //全局变量主要用于全局记录
 BOOL bStateForNext, bGameOver, bBlockState[10][24], bPause, bGameState;
 POINT ptCurrentPos, ptCurrentShape, ptNextShape;
-int iScore,MissCount;
+int iScore,MissCount,Beat;
 
 
 
@@ -156,14 +164,14 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	int i, j;
+	int i, j, lBeat;
 	PAINTSTRUCT ps;
 	HDC hdc;
 	HBITMAP hBitmap, hOldBitmap;
 	HBITMAP BitA, BitW, BitS, BitD, BitA_p, BitW_p, BitS_p, BitD_p;
 	HBRUSH hOldBrush;
 	RECT rect;
-	TCHAR wcScore[20];
+	TCHAR wcScore[20],wcMiss[10];
 	static HWND hStartBtn, hEndBtn;
 	static int cxScreen, cyScreen, cxClient, cyClient, cxChar, cyChar;
 
@@ -232,6 +240,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				return 0;
 			case ID_STOP:
 				KillTimer(hWnd, 1);
+				KillTimer(hWnd, ID_BEATIMER);
 				EnableWindow(hStartBtn, TRUE);
 				EnableWindow(hEndBtn, FALSE);
 				return 0;
@@ -266,12 +275,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					bBlockState[ptCurrentPos.x + ptBlock[ptCurrentShape.x * 4 + ptCurrentShape.y][i].x][ptCurrentPos.y + ptBlock[ptCurrentShape.x * 4 + ptCurrentShape.y][i].y] = TRUE;
 				}
 				SetTimer(hWnd, 1, 1000, NULL);
+				SetTimer(hWnd, ID_BEATIMER, 750, NULL);
 				EnableWindow(hStartBtn, FALSE);
 				EnableWindow(hEndBtn, TRUE);
 				return 0;
 				//结束计时，结束游戏 
 			case ID_END_BTN:
 				KillTimer(hWnd, 1);
+				KillTimer(hWnd, ID_BEATIMER);
 				EnableWindow(hStartBtn, TRUE);
 				EnableWindow(hEndBtn, FALSE);
 				return 0;
@@ -329,7 +340,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					if (bBlockState[i][j])
 						Rectangle(hMemDC, 2 + 25 * i, cyClient - 2 - 25 * (j + 1), 2 + 25 * (i + 1), cyClient - 2 - 25 * j);
 			//MISS
-			TextOut(hMemDC, 525, 125, TEXT("Miss:"), 5);
+			wsprintf(wcMiss, TEXT("Miss:%d"), MissCount);
+			TextOut(hMemDC, 525, 125, wcMiss, lstrlen(wcMiss));
 			//绘制BEAT部分
 			SelectObject(hMemDC1, BitA);
 			BitBlt(hMemDC, 500, 300, cxClient, cyClient, hMemDC1, 0, 0, SRCCOPY);
@@ -341,6 +353,28 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			BitBlt(hMemDC, 575, 225, cxClient, cyClient, hMemDC1, 0, 0, SRCCOPY);
 
 
+
+			switch (Beat)
+			{
+			case 1:
+				SelectObject(hMemDC1, BitW_p);
+				BitBlt(hMemDC, 575, 225, cxClient, cyClient, hMemDC1, 0, 0, SRCCOPY);
+				break;
+			case 2:
+				SelectObject(hMemDC1, BitA_p);
+				BitBlt(hMemDC, 500, 300, cxClient, cyClient, hMemDC1, 0, 0, SRCCOPY);
+				break;
+			case 3:
+				SelectObject(hMemDC1, BitS_p);
+				BitBlt(hMemDC, 575, 300, cxClient, cyClient, hMemDC1, 0, 0, SRCCOPY);
+				break;
+			case 4:
+				SelectObject(hMemDC1, BitD_p);
+				BitBlt(hMemDC, 650, 300, cxClient, cyClient, hMemDC1, 0, 0, SRCCOPY);
+				break;
+			default:
+				break;
+			}
 
 
 			BitBlt(hdc, 0, 0, cxClient, cyClient, hMemDC, 0, 0, SRCCOPY);
@@ -361,17 +395,28 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
 
 	case WM_TIMER:
-		if (bGameOver)
+		switch (wParam)
 		{
-			KillTimer(hWnd, 1);
-			MessageBox(hWnd, TEXT("ERROR"), TEXT("XXXX"), TRUE);
-			return 0;
+		case ID_BEATIMER:
+			lBeat=Beat;
+			Beat = (rand() % 4) + 1;//保证每次的Beat不同
+			if (Beat == lBeat)
+				Beat = (Beat + 1) % 4 + 1;
+			break;
+		case 1:
+			if (bGameOver)
+			{
+				KillTimer(hWnd, 1);
+				MessageBox(hWnd, TEXT("ERROR"), TEXT("XXXX"), TRUE);
+				return 0;
+			}
+			TransBlock(KEY_NORMAL);
 		}
-		TransBlock(KEY_NORMAL);
 		InvalidateRect(hWnd, NULL, FALSE);
 		return 0;
 	case WM_KEYDOWN:
 		TransBlock(wParam);
+		EchoBeat(wParam);
 		InvalidateRect(hWnd, NULL, FALSE);
 		return 0;
 
@@ -406,7 +451,40 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 }
 
 
-
+//判断节拍是否正确
+BOOL EchoBeat(int nIndex)
+{
+	switch (nIndex)
+	{
+	case KEY_W:
+		if (Beat == 1)
+			iScore++;
+		else
+			MissCount++;
+		break;
+	case KEY_A:
+		if (Beat == 2)
+			iScore++;
+		else
+			MissCount++;
+		break;
+	case KEY_S:
+		if (Beat == 3)
+			iScore++;
+		else
+			MissCount++;
+		break;
+	case KEY_D:
+		if (Beat == 4)
+			iScore++;
+		else
+			MissCount++;
+		break;
+	default:
+		break;
+	}
+	return 0;
+}
 
 
 
