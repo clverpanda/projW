@@ -46,7 +46,7 @@ POINT ptBlock[28][4] = { -1, 0, 0, 0, 1, 0, 0, 1, -1, 0, 0, 0, 0, -1, 0, 1, -1, 
 -1, 0, 0, 0, -1, -1, 0, -1, -1, 0, 0, 0, -1, -1, 0, -1, -1, 0, 0, 0, -1, -1, 0, -1, -1, 0, 0, 0, -1, -1, 0, -1 };//田
 
  //全局变量主要用于全局记录
-BOOL bStateForNext, bGameOver, bBlockState[10][24], bPause, bGameState;
+BOOL bStateForNext, bGameOver, bBlockState[10][24], bPause, bGameState, MisFlag;
 POINT ptCurrentPos, ptCurrentShape, ptNextShape;
 int iScore,MissCount,Beat;
 
@@ -57,6 +57,7 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK    RecordDialog(HWND, UINT, WPARAM, LPARAM);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -212,6 +213,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case ID_START:
 				//初始化参数，启动游戏
 				iScore = 0;
+				MissCount = 0;
 				bGameState = TRUE;
 				bPause = FALSE;
 				bGameOver = FALSE;
@@ -253,6 +255,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case ID_START_BTN:
 				//初始化参数，启动游戏
 				iScore = 0;
+				MissCount = 0;
 				bGameState = TRUE;
 				bPause = FALSE;
 				bGameOver = FALSE;
@@ -276,6 +279,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 				SetTimer(hWnd, 1, 1000, NULL);
 				SetTimer(hWnd, ID_BEATIMER, 750, NULL);
+				MisFlag = FALSE;
 				EnableWindow(hStartBtn, FALSE);
 				EnableWindow(hEndBtn, TRUE);
 				return 0;
@@ -317,7 +321,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			//SelectObject(hMemDC, GetStockObject(SYSTEM_FIXED_FONT));
 			TextOut(hMemDC, 260, 125, TEXT("Next Block:"), 11);
-			wsprintf(wcScore, TEXT("Score:%d"), 10 * iScore);
+			wsprintf(wcScore, TEXT("Score:%d"), iScore);
 		    TextOut(hMemDC, 360, 200, wcScore, lstrlen(wcScore));
 			//绘制边框
 			SelectObject(hMemDC, GetStockObject(BLACK_PEN));
@@ -402,12 +406,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			Beat = (rand() % 4) + 1;//保证每次的Beat不同
 			if (Beat == lBeat)
 				Beat = (Beat + 1) % 4 + 1;
+			if (MisFlag == TRUE)
+				MissCount++;
+			MisFlag = TRUE;
+			if (MissCount >= 10)
+				bGameOver = TRUE;
 			break;
 		case 1:
 			if (bGameOver)
 			{
 				KillTimer(hWnd, 1);
-				MessageBox(hWnd, TEXT("ERROR"), TEXT("XXXX"), TRUE);
+				KillTimer(hWnd, ID_BEATIMER);
+				DialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG1), hWnd, RecordDialog);
 				return 0;
 			}
 			TransBlock(KEY_NORMAL);
@@ -415,8 +425,38 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		InvalidateRect(hWnd, NULL, FALSE);
 		return 0;
 	case WM_KEYDOWN:
-		TransBlock(wParam);
-		EchoBeat(wParam);
+		switch (wParam)
+		{
+		case KEY_LEFT:
+			TransBlock(wParam);
+			break;
+		case KEY_RIGHT:
+			TransBlock(wParam);
+			break;
+		case KEY_UP:
+			TransBlock(wParam);
+			break;
+		case KEY_DOWN:
+			TransBlock(wParam);
+			break;
+		case KEY_W:
+			EchoBeat(wParam);
+			break;
+		case KEY_A:
+			EchoBeat(wParam);
+			break;
+		case KEY_S:
+			EchoBeat(wParam);
+			break;
+		case KEY_D:
+			EchoBeat(wParam);
+			break;
+		default:
+			TransBlock(wParam);
+			break;
+		}
+		//TransBlock(wParam);
+		//EchoBeat(wParam);
 		InvalidateRect(hWnd, NULL, FALSE);
 		return 0;
 
@@ -450,6 +490,25 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     return (INT_PTR)FALSE;
 }
 
+//最高纪录对话框消息处理程序
+INT_PTR CALLBACK RecordDialog(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	UNREFERENCED_PARAMETER(lParam);
+	switch (message)
+	{
+	case WM_INITDIALOG:
+		return (INT_PTR)TRUE;
+
+	case WM_COMMAND:
+		if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
+		{
+			EndDialog(hDlg, LOWORD(wParam));
+			return (INT_PTR)TRUE;
+		}
+		break;
+	}
+	return (INT_PTR)FALSE;
+}
 
 //判断节拍是否正确
 BOOL EchoBeat(int nIndex)
@@ -457,30 +516,47 @@ BOOL EchoBeat(int nIndex)
 	switch (nIndex)
 	{
 	case KEY_W:
-		if (Beat == 1)
-			iScore++;
-		else
-			MissCount++;
+		if (MisFlag == TRUE)
+		{
+			if (Beat == 1)
+				iScore++;
+			else
+				MissCount++;
+			MisFlag = FALSE;
+		}
 		break;
 	case KEY_A:
-		if (Beat == 2)
-			iScore++;
-		else
-			MissCount++;
+		if (MisFlag == TRUE)
+		{
+			if (Beat == 2)
+				iScore++;
+			else
+				MissCount++;
+			MisFlag = FALSE;
+		}
 		break;
 	case KEY_S:
-		if (Beat == 3)
-			iScore++;
-		else
-			MissCount++;
+		if (MisFlag == TRUE)
+		{
+			if (Beat == 3)
+				iScore++;
+			else
+				MissCount++;
+			MisFlag = FALSE;
+		}
 		break;
 	case KEY_D:
-		if (Beat == 4)
-			iScore++;
-		else
-			MissCount++;
+		if (MisFlag == TRUE)
+		{
+			if (Beat == 4)
+				iScore++;
+			else
+				MissCount++;
+			MisFlag = FALSE;
+		}
 		break;
 	default:
+		
 		break;
 	}
 	return 0;
@@ -631,7 +707,7 @@ void HandleTable()
 			for (i = 0; i < 10; i++) { bTempBlockState[i][k] = bBlockState[i][j]; }
 			k++;
 		}
-		else iScore++;
+		else iScore+=10;
 	}
 	for (i = 0; i < 10; i++)
 		for (j = 0; j < 24; j++)
