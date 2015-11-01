@@ -51,5 +51,32 @@
     <Image Include="projW.ico">
       <Filter>资源文件</Filter>
     </Image>
+    <Image Include="..\BG.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\A.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\A_p.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\D.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\D_p.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\S.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\S_p.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\W.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\W_p.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
   </ItemGroup>
 </Project>

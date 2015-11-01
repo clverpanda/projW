@@ -163,6 +163,15 @@
     <ResourceCompile Include="projW.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="..\A.bmp" />
+    <Image Include="..\A_p.bmp" />
+    <Image Include="..\BG.bmp" />
+    <Image Include="..\D.bmp" />
+    <Image Include="..\D_p.bmp" />
+    <Image Include="..\S.bmp" />
+    <Image Include="..\S_p.bmp" />
+    <Image Include="..\W.bmp" />
+    <Image Include="..\W_p.bmp" />
     <Image Include="projW.ico" />
     <Image Include="small.ico" />
   </ItemGroup>
