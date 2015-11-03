@@ -34,6 +34,8 @@ WCHAR szWindowClass[MAX_LOADSTRING];            // 主窗口类名
 BOOL Compare();//判定是否碰撞
 BOOL TransBlock(int);//转换函数(包含变形，加速，左右移动。
 BOOL EchoBeat(int);
+void TcharToChar(const TCHAR * tchar, char * _char);
+void CharToTchar(const char * _char, TCHAR * tchar);
 
 void HandleTable();//得分时处理游戏区域
 				   //定义24种方块
@@ -49,8 +51,8 @@ POINT ptBlock[28][4] = { -1, 0, 0, 0, 1, 0, 0, 1, -1, 0, 0, 0, 0, -1, 0, 1, -1, 
 BOOL bStateForNext, bGameOver, bBlockState[10][24], bPause, bGameState, MisFlag;
 POINT ptCurrentPos, ptCurrentShape, ptNextShape;
 int iScore,MissCount,Beat;
-
-
+HANDLE hFile;
+TCHAR filename[20];
 
 // 此代码模块中包含的函数的前向声明: 
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -58,6 +60,7 @@ BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    RecordDialog(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK    Record(HWND, UINT, WPARAM, LPARAM);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -172,7 +175,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	HBITMAP BitA, BitW, BitS, BitD, BitA_p, BitW_p, BitS_p, BitD_p;
 	HBRUSH hOldBrush;
 	RECT rect;
-	TCHAR wcScore[20],wcMiss[10];
+	TCHAR wcScore[20], wcMiss[10];
 	static HWND hStartBtn, hEndBtn;
 	static int cxScreen, cyScreen, cxClient, cyClient, cxChar, cyChar;
 
@@ -195,6 +198,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			GetClientRect(hWnd, &rect);
 			cxClient = rect.right - rect.left;
 			cyClient = rect.bottom - rect.top;
+			wsprintf(filename, TEXT("Record.txt"), NULL);
+			hFile = CreateFile(filename, GENERIC_WRITE, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	    }
 		break;
 	/*case WM_SIZE:
@@ -290,6 +295,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				EnableWindow(hStartBtn, TRUE);
 				EnableWindow(hEndBtn, FALSE);
 				return 0;
+			case ID_RECORD:
+				DialogBox(hInst, MAKEINTRESOURCE(IDD_RECORD), hWnd, Record);
+				break;
+			case ID_RECORDRS:
+				CloseHandle(hFile);
+				DeleteFile(filename);
+				hFile = CreateFile(filename, GENERIC_WRITE, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+				break;
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
             }
@@ -461,6 +474,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		return 0;
 
     case WM_DESTROY:
+		CloseHandle(hFile);
 		KillTimer(hWnd, 1);
         PostQuitMessage(0);
         break;
@@ -490,13 +504,59 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     return (INT_PTR)FALSE;
 }
 
-//最高纪录对话框消息处理程序
+//新最高纪录对话框消息处理程序
 INT_PTR CALLBACK RecordDialog(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	TCHAR dScore[10], oName[20], out[30];
+	char oOut[30];
+	DWORD num;
 	UNREFERENCED_PARAMETER(lParam);
 	switch (message)
 	{
 	case WM_INITDIALOG:
+		wsprintf(dScore, TEXT("%d"), iScore);
+		SetDlgItemText(hDlg, IDC_SCORE, dScore);
+		return (INT_PTR)TRUE;
+
+	case WM_COMMAND:
+		switch (wParam)
+		{
+		case IDOK:
+			GetDlgItemText(hDlg, IDC_NAME, oName, 20);
+			wsprintf(out, TEXT("%s %d"), oName, iScore);
+			TcharToChar(out, oOut);
+			CloseHandle(hFile);
+			DeleteFile(filename);
+			hFile = CreateFile(filename, GENERIC_WRITE, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+			WriteFile(hFile, oOut, strlen(oOut), &num, NULL);
+			EndDialog(hDlg, LOWORD(wParam));
+			return (INT_PTR)TRUE;
+			break;
+		case IDCANCEL:
+			EndDialog(hDlg, LOWORD(wParam));
+			return (INT_PTR)TRUE;
+			break;
+		default:
+			break;
+		}
+	}
+	return (INT_PTR)FALSE;
+}
+
+//最高纪录对话框消息处理程序
+INT_PTR CALLBACK Record(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	char dRead[30];
+	TCHAR ddRead[30];
+	DWORD num = 0;
+	UNREFERENCED_PARAMETER(lParam);
+	switch (message)
+	{
+	case WM_INITDIALOG:
+		SetFilePointer(hFile, 0, NULL, FILE_BEGIN);
+		ReadFile(hFile, dRead, strlen(dRead), &num, NULL);
+		CharToTchar(dRead, ddRead);
+		SetDlgItemText(hDlg, IDC_EDIT1, ddRead);
 		return (INT_PTR)TRUE;
 
 	case WM_COMMAND:
@@ -508,6 +568,23 @@ INT_PTR CALLBACK RecordDialog(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 		break;
 	}
 	return (INT_PTR)FALSE;
+}
+
+
+void CharToTchar(const char * _char, TCHAR * tchar)
+{
+	int iLength;
+
+	iLength = MultiByteToWideChar(CP_ACP, 0, _char, strlen(_char) + 1, NULL, 0);
+	MultiByteToWideChar(CP_ACP, 0, _char, strlen(_char) + 1, tchar, iLength);
+}
+void TcharToChar(const TCHAR * tchar, char * _char)
+{
+	int iLength;
+	//获取字节长度   
+	iLength = WideCharToMultiByte(CP_ACP, 0, tchar, -1, NULL, 0, NULL, NULL);
+	//将tchar值赋给_char    
+	WideCharToMultiByte(CP_ACP, 0, tchar, -1, _char, iLength, NULL, NULL);
 }
 
 //判断节拍是否正确
