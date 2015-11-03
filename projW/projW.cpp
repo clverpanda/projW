@@ -7,6 +7,7 @@
 #include<windows.h>
 #include<time.h>
 
+
 #define MAX_LOADSTRING 100
 
 
@@ -420,7 +421,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			if (Beat == lBeat)
 				Beat = (Beat + 1) % 4 + 1;
 			if (MisFlag == TRUE)
+			{
+				PlaySound((LPCTSTR)IDR_BEEP, hInst, SND_RESOURCE | SND_ASYNC);
 				MissCount++;
+			}
 			MisFlag = TRUE;
 			if (MissCount >= 10)
 				bGameOver = TRUE;
@@ -596,9 +600,15 @@ BOOL EchoBeat(int nIndex)
 		if (MisFlag == TRUE)
 		{
 			if (Beat == 1)
+			{
+				PlaySound((LPCTSTR)IDR_RIGHT, hInst, SND_RESOURCE | SND_ASYNC);
 				iScore++;
+			}
 			else
+			{
+				PlaySound((LPCTSTR)IDR_BEEP, hInst, SND_RESOURCE | SND_ASYNC);
 				MissCount++;
+			}
 			MisFlag = FALSE;
 		}
 		break;
@@ -606,9 +616,15 @@ BOOL EchoBeat(int nIndex)
 		if (MisFlag == TRUE)
 		{
 			if (Beat == 2)
+			{
+				PlaySound((LPCTSTR)IDR_RIGHT, hInst, SND_RESOURCE | SND_ASYNC);
 				iScore++;
+			}
 			else
+			{
+				PlaySound((LPCTSTR)IDR_BEEP, hInst, SND_RESOURCE | SND_ASYNC);
 				MissCount++;
+			}
 			MisFlag = FALSE;
 		}
 		break;
@@ -616,9 +632,15 @@ BOOL EchoBeat(int nIndex)
 		if (MisFlag == TRUE)
 		{
 			if (Beat == 3)
+			{
+				PlaySound((LPCTSTR)IDR_RIGHT, hInst, SND_RESOURCE | SND_ASYNC);
 				iScore++;
+			}
 			else
+			{
+				PlaySound((LPCTSTR)IDR_BEEP, hInst, SND_RESOURCE | SND_ASYNC);
 				MissCount++;
+			}
 			MisFlag = FALSE;
 		}
 		break;
@@ -626,9 +648,15 @@ BOOL EchoBeat(int nIndex)
 		if (MisFlag == TRUE)
 		{
 			if (Beat == 4)
+			{
+				PlaySound((LPCTSTR)IDR_RIGHT, hInst, SND_RESOURCE | SND_ASYNC);
 				iScore++;
+			}
 			else
+			{
+				PlaySound((LPCTSTR)IDR_BEEP, hInst, SND_RESOURCE | SND_ASYNC);
 				MissCount++;
+			}
 			MisFlag = FALSE;
 		}
 		break;
