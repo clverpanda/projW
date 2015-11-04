@@ -200,7 +200,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			cxClient = rect.right - rect.left;
 			cyClient = rect.bottom - rect.top;
 			wsprintf(filename, TEXT("Record.txt"), NULL);
-			hFile = CreateFile(filename, GENERIC_WRITE, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+			hFile = CreateFile(filename, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	    }
 		break;
 	/*case WM_SIZE:
@@ -531,8 +531,8 @@ INT_PTR CALLBACK RecordDialog(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 			TcharToChar(out, oOut);
 			CloseHandle(hFile);
 			DeleteFile(filename);
-			hFile = CreateFile(filename, GENERIC_WRITE, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-			WriteFile(hFile, oOut, strlen(oOut), &num, NULL);
+			hFile = CreateFile(filename, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+			WriteFile(hFile, oOut, (strlen(oOut) + 1), &num, NULL);
 			EndDialog(hDlg, LOWORD(wParam));
 			return (INT_PTR)TRUE;
 			break;
